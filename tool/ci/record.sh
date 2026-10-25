@@ -26,8 +26,17 @@ detect_app_id() {
     APP_ID=${IOS_BUNDLE_ID:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' \
       build/ios/iphonesimulator/Runner.app/Info.plist)}
   else
-    APP_ID=${ANDROID_APP_ID:-$(grep -hoE 'applicationId\s*=?\s*"[^"]+"' \
-      android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"/\1/')}
+    # Groovy 與 Kotlin DSL 都可能，而且只會有其中一個檔案（不能用 grep 兩個檔案，缺檔會讓 pipefail 中止）
+    APP_ID=${ANDROID_APP_ID:-$(python3 -c '
+import pathlib, re
+for name in ("build.gradle.kts", "build.gradle"):
+    f = pathlib.Path("android/app") / name
+    if f.exists():
+        m = re.search(r"applicationId\s*=?\s*[\x22\x27]([^\x22\x27]+)[\x22\x27]", f.read_text())
+        if m:
+            print(m.group(1))
+            break
+')}
   fi
   [ -n "$APP_ID" ] || { echo "::error::could not detect app id"; exit 1; }
   echo "app id: $APP_ID"
