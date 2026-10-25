@@ -79,13 +79,13 @@ Future<void> tap(WidgetTester tester, Finder target, {int after = 1600}) async {
 
 /// 停在目前畫面讓 CI 截圖，並等 CI 回報「截好了」才繼續（握手）。
 ///
-/// 模擬器上第一次截圖可能要 6～11 秒、iOS 的 log 也會延遲，固定等待時間一定會遇到截到下一個畫面的情況，
+/// CI 上的模擬器剛啟動 App 時，一次截圖可能要 10～90 秒（runner 忙的時候更久），固定等待時間一定會截到下一個畫面，
 /// 所以 CI 截完圖後會把名稱寫進 App tmp 資料夾的 demo_shot_ack.txt，這裡輪詢到才往下走。
 /// 名稱就是截圖檔名（只用英數字與底線），也是 tool/ci/store.json 裡 captions 的 key。
 Future<void> shot(
   WidgetTester tester,
   String name, {
-  Duration timeout = const Duration(seconds: 40),
+  Duration timeout = const Duration(minutes: 3),
 }) async {
   await pause(tester, 1500);
   final dir = Directory.systemTemp.path;

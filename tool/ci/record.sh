@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 在已開機的模擬器上執行 demo 測試：先截上架圖（MODE=shots），再錄操作影片（MODE=video）。
 # Usage: tool/ci/record.sh ios|android <device-id> <out-dir>
-# 環境變數：DEMO_TEST（預設 integration_test/demo_test.dart）、
+# 環境變數：DEMO_TEST（預設 integration_test/demo_test.dart）、DEMO_TIMEOUT（每個模式的上限秒數，預設 900）、
 #           IOS_BUNDLE_ID / ANDROID_APP_ID（選用，預設自動偵測）
 #
 # 為什麼不用 `flutter test`：
@@ -210,7 +210,8 @@ run_mode() {
     poller=$!
   fi
   launch_app
-  local deadline=$(( $(date +%s) + 300 ))
+  # 截圖握手在 runner 很忙時每張可能要等 1～2 分鐘，所以整段上限給寬一點（DEMO_TIMEOUT 秒）
+  local deadline=$(( $(date +%s) + ${DEMO_TIMEOUT:-900} ))
   until grep -q "$done_marker" "$log"; do
     # 結束訊號與例外可能在同一秒寫入，所以判斷失敗前再確認一次結束訊號
     if { grep -q "tests failed\|EXCEPTION CAUGHT" "$log" && ! grep -q "$done_marker" "$log"; } \
