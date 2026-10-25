@@ -15,6 +15,7 @@ mkdir -p "$ANDROID_AVD_HOME"
 TOOLS="$SDK/cmdline-tools/latest"
 [ -d "$SDK/cmdline-tools/latest-2" ] && TOOLS="$SDK/cmdline-tools/latest-2"
 export PATH="$TOOLS/bin:$SDK/emulator:$SDK/platform-tools:$PATH"
+echo "$SDK/platform-tools" >> "$GITHUB_PATH"
 sdkmanager --version
 sdkmanager --install emulator platform-tools "$IMAGE" > /dev/null
 avdmanager list device -c | grep -i "pixel_1[0-9]" || echo "(no pixel_1x profiles)"
