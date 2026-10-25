@@ -14,7 +14,8 @@ class NightSky extends StatefulWidget {
   State<NightSky> createState() => _NightSkyState();
 }
 
-class _NightSkyState extends State<NightSky> with SingleTickerProviderStateMixin {
+class _NightSkyState extends State<NightSky>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller = AnimationController(
     vsync: this,
     duration: const Duration(seconds: 12),
@@ -30,10 +31,8 @@ class _NightSkyState extends State<NightSky> with SingleTickerProviderStateMixin
   Widget build(BuildContext context) {
     return AnimatedBuilder(
       animation: _controller,
-      builder: (context, child) => CustomPaint(
-        painter: _SkyPainter(_controller.value),
-        child: child,
-      ),
+      builder: (context, child) =>
+          CustomPaint(painter: _SkyPainter(_controller.value), child: child),
       child: widget.child,
     );
   }
@@ -45,7 +44,12 @@ class _SkyPainter extends CustomPainter {
   final double t;
   static final _stars = List.generate(40, (i) {
     final r = Random(i * 7919);
-    return (r.nextDouble(), r.nextDouble(), r.nextDouble() * 1.6 + 0.6, r.nextDouble());
+    return (
+      r.nextDouble(),
+      r.nextDouble(),
+      r.nextDouble() * 1.6 + 0.6,
+      r.nextDouble(),
+    );
   });
 
   @override
@@ -76,15 +80,28 @@ class _SkyPainter extends CustomPainter {
       moonCenter,
       moonRadius * 1.9,
       Paint()
-        ..shader = RadialGradient(colors: [
-          Spooky.moon.withValues(alpha: 0.35),
-          Spooky.moon.withValues(alpha: 0),
-        ]).createShader(Rect.fromCircle(center: moonCenter, radius: moonRadius * 1.9)),
+        ..shader =
+            RadialGradient(
+              colors: [
+                Spooky.moon.withValues(alpha: 0.35),
+                Spooky.moon.withValues(alpha: 0),
+              ],
+            ).createShader(
+              Rect.fromCircle(center: moonCenter, radius: moonRadius * 1.9),
+            ),
     );
     canvas.drawCircle(moonCenter, moonRadius, Paint()..color = Spooky.moon);
     final crater = Paint()..color = const Color(0xFFEBD9A6);
-    canvas.drawCircle(moonCenter + Offset(-moonRadius * 0.3, -moonRadius * 0.2), moonRadius * 0.18, crater);
-    canvas.drawCircle(moonCenter + Offset(moonRadius * 0.35, moonRadius * 0.3), moonRadius * 0.24, crater);
+    canvas.drawCircle(
+      moonCenter + Offset(-moonRadius * 0.3, -moonRadius * 0.2),
+      moonRadius * 0.18,
+      crater,
+    );
+    canvas.drawCircle(
+      moonCenter + Offset(moonRadius * 0.35, moonRadius * 0.3),
+      moonRadius * 0.24,
+      crater,
+    );
 
     for (var i = 0; i < 3; i++) {
       final p = (t + i / 3) % 1.0;
@@ -98,12 +115,42 @@ class _SkyPainter extends CustomPainter {
     final lift = flap * s * 0.45;
     final path = Path()
       ..moveTo(c.dx, c.dy + s * 0.2)
-      ..quadraticBezierTo(c.dx - s * 0.6, c.dy - s * 0.4 - lift, c.dx - s * 1.4, c.dy - lift)
-      ..quadraticBezierTo(c.dx - s * 0.8, c.dy + s * 0.05, c.dx - s * 0.5, c.dy + s * 0.35)
-      ..quadraticBezierTo(c.dx - s * 0.25, c.dy + s * 0.1, c.dx, c.dy + s * 0.45)
-      ..quadraticBezierTo(c.dx + s * 0.25, c.dy + s * 0.1, c.dx + s * 0.5, c.dy + s * 0.35)
-      ..quadraticBezierTo(c.dx + s * 0.8, c.dy + s * 0.05, c.dx + s * 1.4, c.dy - lift)
-      ..quadraticBezierTo(c.dx + s * 0.6, c.dy - s * 0.4 - lift, c.dx, c.dy + s * 0.2)
+      ..quadraticBezierTo(
+        c.dx - s * 0.6,
+        c.dy - s * 0.4 - lift,
+        c.dx - s * 1.4,
+        c.dy - lift,
+      )
+      ..quadraticBezierTo(
+        c.dx - s * 0.8,
+        c.dy + s * 0.05,
+        c.dx - s * 0.5,
+        c.dy + s * 0.35,
+      )
+      ..quadraticBezierTo(
+        c.dx - s * 0.25,
+        c.dy + s * 0.1,
+        c.dx,
+        c.dy + s * 0.45,
+      )
+      ..quadraticBezierTo(
+        c.dx + s * 0.25,
+        c.dy + s * 0.1,
+        c.dx + s * 0.5,
+        c.dy + s * 0.35,
+      )
+      ..quadraticBezierTo(
+        c.dx + s * 0.8,
+        c.dy + s * 0.05,
+        c.dx + s * 1.4,
+        c.dy - lift,
+      )
+      ..quadraticBezierTo(
+        c.dx + s * 0.6,
+        c.dy - s * 0.4 - lift,
+        c.dx,
+        c.dy + s * 0.2,
+      )
       ..close();
     canvas.drawPath(path, Paint()..color = const Color(0xFF07020F));
   }

@@ -29,9 +29,17 @@ class CreditsScreen extends StatelessWidget {
                 contentPadding: const EdgeInsets.all(10),
                 leading: ClipRRect(
                   borderRadius: BorderRadius.circular(10),
-                  child: Image.asset(m.image, width: 56, height: 56, fit: BoxFit.cover),
+                  child: Image.asset(
+                    m.image,
+                    width: 56,
+                    height: 56,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-                title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.w700)),
+                title: Text(
+                  m.name,
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
                 subtitle: SelectableText(
                   '${m.credit.artist}・${m.credit.license}\n${m.credit.url}',
                   style: const TextStyle(fontSize: 12, color: Spooky.mist),
@@ -43,9 +51,14 @@ class CreditsScreen extends StatelessWidget {
             child: ListTile(
               contentPadding: EdgeInsets.all(10),
               leading: Text('🔤', style: TextStyle(fontSize: 36)),
-              title: Text('Creepster 字型', style: TextStyle(fontWeight: FontWeight.w700)),
-              subtitle: Text('Sideshow・SIL Open Font License 1.1',
-                  style: TextStyle(fontSize: 12, color: Spooky.mist)),
+              title: Text(
+                'Creepster 字型',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+              subtitle: Text(
+                'Sideshow・SIL Open Font License 1.1',
+                style: TextStyle(fontSize: 12, color: Spooky.mist),
+              ),
             ),
           ),
         ],

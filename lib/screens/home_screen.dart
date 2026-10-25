@@ -15,52 +15,35 @@ class HomeScreen extends StatelessWidget {
   static final _random = Random();
 
   void _open(BuildContext context, Monster monster) {
-    Navigator.of(context).push(MaterialPageRoute(builder: (_) => DetailScreen(monster: monster)));
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => DetailScreen(monster: monster)));
   }
 
   @override
   Widget build(BuildContext context) {
     final featured = monsters.firstWhere((m) => m.id == 'headless_horseman');
+    final top = MediaQuery.paddingOf(context).top;
     return Scaffold(
-      body: CustomScrollView(
-        key: const Key('monsterList'),
-        slivers: [
-          SliverToBoxAdapter(child: _Header(onInfo: () {
-            Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CreditsScreen()));
-          })),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: _FeaturedCard(monster: featured, onTap: () => _open(context, featured)),
-            ),
-          ),
-          const SliverToBoxAdapter(
-            child: Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                children: [
-                  Text('🎃', style: TextStyle(fontSize: 20)),
-                  SizedBox(width: 8),
-                  Text('妖怪圖鑑', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  Spacer(),
-                  Text('共 10 隻', style: TextStyle(color: Spooky.mist)),
-                ],
-              ),
-            ),
-          ),
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
-            sliver: SliverGrid.builder(
-              itemCount: monsters.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                mainAxisSpacing: 14,
-                crossAxisSpacing: 14,
-                childAspectRatio: 0.74,
-              ),
-              itemBuilder: (context, i) => _MonsterCard(
-                monster: monsters[i],
-                onTap: () => _open(context, monsters[i]),
+      body: Stack(
+        children: [
+          _buildList(context, featured),
+          // 捲動時讓狀態列下方保持清楚
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: top + 12,
+            child: const IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.7, 1],
+                    colors: [Color(0xF0120822), Color(0x00120822)],
+                  ),
+                ),
               ),
             ),
           ),
@@ -70,10 +53,73 @@ class HomeScreen extends StatelessWidget {
         key: const Key('randomButton'),
         backgroundColor: Spooky.pumpkin,
         foregroundColor: Colors.white,
-        onPressed: () => _open(context, monsters[_random.nextInt(monsters.length)]),
+        onPressed: () =>
+            _open(context, monsters[_random.nextInt(monsters.length)]),
         icon: const Text('🔮', style: TextStyle(fontSize: 20)),
-        label: const Text('隨機召喚', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16)),
+        label: const Text(
+          '隨機召喚',
+          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+        ),
       ),
+    );
+  }
+
+  Widget _buildList(BuildContext context, Monster featured) {
+    return CustomScrollView(
+      key: const Key('monsterList'),
+      slivers: [
+        SliverToBoxAdapter(
+          child: _Header(
+            onInfo: () {
+              Navigator.of(
+                context,
+              ).push(MaterialPageRoute(builder: (_) => const CreditsScreen()));
+            },
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: _FeaturedCard(
+              monster: featured,
+              onTap: () => _open(context, featured),
+            ),
+          ),
+        ),
+        const SliverToBoxAdapter(
+          child: Padding(
+            padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
+            child: Row(
+              children: [
+                Text('🎃', style: TextStyle(fontSize: 20)),
+                SizedBox(width: 8),
+                Text(
+                  '妖怪圖鑑',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+                ),
+                Spacer(),
+                Text('共 10 隻', style: TextStyle(color: Spooky.mist)),
+              ],
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+          sliver: SliverGrid.builder(
+            itemCount: monsters.length,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisSpacing: 14,
+              crossAxisSpacing: 14,
+              childAspectRatio: 0.74,
+            ),
+            itemBuilder: (context, i) => _MonsterCard(
+              monster: monsters[i],
+              onTap: () => _open(context, monsters[i]),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -104,12 +150,20 @@ class _Header extends StatelessWidget {
                       fontSize: 46,
                       height: 1.0,
                       color: Spooky.pumpkin,
-                      shadows: [Shadow(color: Color(0xAAFF7A1A), blurRadius: 18)],
+                      shadows: [
+                        Shadow(color: Color(0xAAFF7A1A), blurRadius: 18),
+                      ],
                     ),
                   ),
                   SizedBox(height: 10),
-                  Text('萬聖節妖怪圖鑑',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: 2)),
+                  Text(
+                    '萬聖節妖怪圖鑑',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 2,
+                    ),
+                  ),
                   SizedBox(height: 4),
                   Text('認識那些在萬聖夜出沒的傳說生物', style: TextStyle(color: Spooky.mist)),
                 ],
@@ -144,12 +198,20 @@ class _FeaturedCard extends StatelessWidget {
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(24),
-          boxShadow: [BoxShadow(color: Spooky.pumpkin.withValues(alpha: 0.35), blurRadius: 24)],
+          boxShadow: [
+            BoxShadow(
+              color: Spooky.pumpkin.withValues(alpha: 0.35),
+              blurRadius: 24,
+            ),
+          ],
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            Hero(tag: 'featured-${monster.id}', child: Image.asset(monster.image, fit: BoxFit.cover)),
+            Hero(
+              tag: 'featured-${monster.id}',
+              child: Image.asset(monster.image, fit: BoxFit.cover),
+            ),
             const DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
@@ -165,17 +227,35 @@ class _FeaturedCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: Spooky.pumpkin,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Text('今夜最恐怖',
-                        style: TextStyle(fontWeight: FontWeight.w800, fontSize: 12, color: Colors.white)),
+                    child: const Text(
+                      '今夜最恐怖',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 12,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                   const Spacer(),
-                  Text(monster.name, style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900)),
-                  Text(monster.tagline, style: const TextStyle(color: Spooky.moon, fontSize: 13)),
+                  Text(
+                    monster.name,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
+                  Text(
+                    monster.tagline,
+                    style: const TextStyle(color: Spooky.moon, fontSize: 13),
+                  ),
                   const SizedBox(height: 6),
                   ScareMeter(level: monster.scareLevel, size: 16),
                 ],
@@ -217,7 +297,13 @@ class _MonsterCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(monster.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  Text(
+                    monster.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   Text(
                     monster.englishName,
                     maxLines: 1,

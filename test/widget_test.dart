@@ -4,7 +4,9 @@ import 'package:halloween_monster/data/monsters.dart';
 import 'package:halloween_monster/main.dart';
 
 void main() {
-  testWidgets('home shows the monster guide and opens a detail page', (tester) async {
+  testWidgets('home shows the monster guide and opens a detail page', (
+    tester,
+  ) async {
     tester.view.physicalSize = const Size(1290, 2796);
     tester.view.devicePixelRatio = 3;
     addTearDown(tester.view.reset);
@@ -27,7 +29,10 @@ void main() {
     for (final m in monsters) {
       expect(m.scareLevel, inInclusiveRange(1, 5));
       expect(m.powers, isNotEmpty);
-      expect(m.credit.url, startsWith('https://commons.wikimedia.org/wiki/File:'));
+      expect(
+        m.credit.url,
+        startsWith('https://commons.wikimedia.org/wiki/File:'),
+      );
     }
   });
 }

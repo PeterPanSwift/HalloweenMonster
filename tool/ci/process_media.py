@@ -43,6 +43,7 @@ def process_video(src_dir, out_dir, name):
     total = duration(raw)
     start = max(0.0, (marks["START"] - rec) / 1000 - LEAD_IN)
     end = min(total, (marks["END"] - rec) / 1000 + TAIL)
+    os.makedirs(out_dir, exist_ok=True)
     out = os.path.join(out_dir, name)
     subprocess.check_call([
         "ffmpeg", "-y", "-v", "error", "-i", raw, "-ss", f"{start:.3f}", "-to", f"{end:.3f}",

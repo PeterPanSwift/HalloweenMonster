@@ -14,14 +14,15 @@ class Spooky {
 }
 
 ThemeData buildSpookyTheme() {
-  final scheme = ColorScheme.fromSeed(
-    seedColor: Spooky.pumpkin,
-    brightness: Brightness.dark,
-  ).copyWith(
-    primary: Spooky.pumpkin,
-    secondary: Spooky.violet,
-    surface: Spooky.surface,
-  );
+  final scheme =
+      ColorScheme.fromSeed(
+        seedColor: Spooky.pumpkin,
+        brightness: Brightness.dark,
+      ).copyWith(
+        primary: Spooky.pumpkin,
+        secondary: Spooky.violet,
+        surface: Spooky.surface,
+      );
   return ThemeData(
     useMaterial3: true,
     colorScheme: scheme,
@@ -32,8 +33,8 @@ ThemeData buildSpookyTheme() {
       elevation: 0,
     ),
     textTheme: ThemeData.dark().textTheme.apply(
-          bodyColor: Spooky.moon,
-          displayColor: Spooky.moon,
-        ),
+      bodyColor: Spooky.moon,
+      displayColor: Spooky.moon,
+    ),
   );
 }

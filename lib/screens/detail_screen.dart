@@ -9,7 +9,8 @@ class DetailScreen extends StatelessWidget {
 
   final Monster monster;
 
-  Monster get _next => monsters[(monsters.indexOf(monster) + 1) % monsters.length];
+  Monster get _next =>
+      monsters[(monsters.indexOf(monster) + 1) % monsters.length];
 
   @override
   Widget build(BuildContext context) {
@@ -27,7 +28,10 @@ class DetailScreen extends StatelessWidget {
               padding: const EdgeInsets.all(6),
               child: CircleAvatar(
                 backgroundColor: Colors.black45,
-                child: BackButton(key: const Key('backButton'), color: Spooky.moon),
+                child: BackButton(
+                  key: const Key('backButton'),
+                  color: Spooky.moon,
+                ),
               ),
             ),
             flexibleSpace: FlexibleSpaceBar(
@@ -35,7 +39,10 @@ class DetailScreen extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Hero(tag: 'img-${monster.id}', child: Image.asset(monster.image, fit: BoxFit.cover)),
+                  Hero(
+                    tag: 'img-${monster.id}',
+                    child: Image.asset(monster.image, fit: BoxFit.cover),
+                  ),
                   const DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -51,13 +58,28 @@ class DetailScreen extends StatelessWidget {
             ),
           ),
           SliverPadding(
-            padding: EdgeInsets.fromLTRB(20, 0, 20, 32 + MediaQuery.paddingOf(context).bottom),
+            padding: EdgeInsets.fromLTRB(
+              20,
+              0,
+              20,
+              32 + MediaQuery.paddingOf(context).bottom,
+            ),
             sliver: SliverList.list(
               children: [
-                Text(monster.name, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
+                Text(
+                  monster.name,
+                  style: const TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 Text(
                   monster.englishName,
-                  style: const TextStyle(fontFamily: Spooky.titleFont, fontSize: 26, color: Spooky.pumpkin),
+                  style: const TextStyle(
+                    fontFamily: Spooky.titleFont,
+                    fontSize: 26,
+                    color: Spooky.pumpkin,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Wrap(
@@ -66,25 +88,40 @@ class DetailScreen extends StatelessWidget {
                   crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     _Pill(icon: '🗺️', text: monster.origin),
-                    _Pill(icon: '😱', child: ScareMeter(level: monster.scareLevel, size: 15)),
+                    _Pill(
+                      icon: '😱',
+                      child: ScareMeter(level: monster.scareLevel, size: 15),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 18),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
-                    border: const Border(left: BorderSide(color: Spooky.pumpkin, width: 4)),
+                    border: const Border(
+                      left: BorderSide(color: Spooky.pumpkin, width: 4),
+                    ),
                     color: Spooky.pumpkin.withValues(alpha: 0.10),
                   ),
                   child: Text(
                     '「${monster.tagline}」',
-                    style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700, color: Spooky.ember),
+                    style: const TextStyle(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Spooky.ember,
+                    ),
                   ),
                 ),
                 _Section(
                   icon: '📜',
                   title: '傳說故事',
-                  child: Text(monster.story, style: const TextStyle(fontSize: 16, height: 1.7)),
+                  child: Text(
+                    monster.story,
+                    style: const TextStyle(fontSize: 16, height: 1.7),
+                  ),
                 ),
                 _Section(
                   icon: '⚡',
@@ -94,12 +131,18 @@ class DetailScreen extends StatelessWidget {
                 _Section(
                   icon: '🛡️',
                   title: '弱點',
-                  child: _Chips(items: monster.weaknesses, color: const Color(0xFF3FBF8F)),
+                  child: _Chips(
+                    items: monster.weaknesses,
+                    color: const Color(0xFF3FBF8F),
+                  ),
                 ),
                 _Section(
                   icon: '💡',
                   title: '你知道嗎？',
-                  child: Text(monster.funFact, style: const TextStyle(fontSize: 16, height: 1.7)),
+                  child: Text(
+                    monster.funFact,
+                    style: const TextStyle(fontSize: 16, height: 1.7),
+                  ),
                 ),
                 const SizedBox(height: 24),
                 FilledButton.icon(
@@ -108,19 +151,30 @@ class DetailScreen extends StatelessWidget {
                     backgroundColor: Spooky.surfaceHigh,
                     foregroundColor: Spooky.moon,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   onPressed: () => Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(builder: (_) => DetailScreen(monster: _next)),
+                    MaterialPageRoute(
+                      builder: (_) => DetailScreen(monster: _next),
+                    ),
                   ),
                   icon: const Icon(Icons.arrow_forward),
-                  label: Text('下一隻：${_next.name}', style: const TextStyle(fontSize: 16)),
+                  label: Text(
+                    '下一隻：${_next.name}',
+                    style: const TextStyle(fontSize: 16),
+                  ),
                 ),
                 const SizedBox(height: 20),
                 Text(
                   '圖片來源：${monster.credit.artist}・${monster.credit.license}\n'
                   'Wikimedia Commons — ${monster.credit.title}',
-                  style: const TextStyle(color: Spooky.mist, fontSize: 12, height: 1.5),
+                  style: const TextStyle(
+                    color: Spooky.mist,
+                    fontSize: 12,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -142,13 +196,23 @@ class _Pill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(color: Spooky.surfaceHigh, borderRadius: BorderRadius.circular(20)),
+      decoration: BoxDecoration(
+        color: Spooky.surfaceHigh,
+        borderRadius: BorderRadius.circular(20),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(icon, style: const TextStyle(fontSize: 15)),
           const SizedBox(width: 6),
-          child ?? Text(text!, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          child ??
+              Text(
+                text!,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
         ],
       ),
     );
@@ -156,7 +220,11 @@ class _Pill extends StatelessWidget {
 }
 
 class _Section extends StatelessWidget {
-  const _Section({required this.icon, required this.title, required this.child});
+  const _Section({
+    required this.icon,
+    required this.title,
+    required this.child,
+  });
 
   final String icon;
   final String title;
@@ -173,7 +241,13 @@ class _Section extends StatelessWidget {
             children: [
               Text(icon, style: const TextStyle(fontSize: 20)),
               const SizedBox(width: 8),
-              Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),

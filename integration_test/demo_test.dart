@@ -25,26 +25,42 @@ void main() {
   }, timeout: const Timeout(Duration(minutes: 5)));
 }
 
-void mark(String name) => debugPrint('@@MARK $name ${DateTime.now().millisecondsSinceEpoch}');
+void mark(String name) =>
+    debugPrint('@@MARK $name ${DateTime.now().millisecondsSinceEpoch}');
 
-Future<void> wait(WidgetTester tester, int ms) => tester.pump(Duration(milliseconds: ms));
+Future<void> wait(WidgetTester tester, int ms) =>
+    tester.pump(Duration(milliseconds: ms));
 
-Future<void> scroll(WidgetTester tester, String key, double dy, {int ms = 900}) async {
-  await tester.timedDrag(find.byKey(Key(key)).first, Offset(0, dy), Duration(milliseconds: ms));
+Future<void> scroll(
+  WidgetTester tester,
+  String key,
+  double dy, {
+  int ms = 900,
+}) async {
+  await tester.timedDrag(
+    find.byKey(Key(key)).first,
+    Offset(0, dy),
+    Duration(milliseconds: ms),
+  );
   await wait(tester, 900);
 }
 
 Future<void> tap(WidgetTester tester, String key, {int after = 1600}) async {
   final target = find.byKey(Key(key)).first;
   if (target.hitTestable().evaluate().isEmpty) {
-    await tester.scrollUntilVisible(target, 250, scrollable: find.byType(Scrollable).first);
+    await tester.scrollUntilVisible(
+      target,
+      250,
+      scrollable: find.byType(Scrollable).first,
+    );
     await wait(tester, 600);
   }
   await tester.tap(target);
   await wait(tester, after);
 }
 
-Future<void> back(WidgetTester tester) => tap(tester, 'backButton', after: 1300);
+Future<void> back(WidgetTester tester) =>
+    tap(tester, 'backButton', after: 1300);
 
 Future<void> video(WidgetTester tester) async {
   mark('START');

@@ -27,6 +27,19 @@ build_and_install() {
   fi
 }
 
+# 上架截圖用的乾淨狀態列（Android demo mode；iOS 已在開機時用 simctl status_bar 設定）
+clean_status_bar() {
+  [ "$PLATFORM" = android ] || return 0
+  demo() { adb -s "$DEVICE" shell am broadcast -a com.android.systemui.demo -p com.android.systemui -e command "$@" > /dev/null; }
+  adb -s "$DEVICE" shell settings put global sysui_demo_allowed 1
+  demo enter
+  demo clock -e hhmm 0941
+  demo battery -e level 100 -e plugged false
+  demo network -e wifi show -e level 4
+  demo network -e mobile show -e datatype none -e level 4
+  demo notifications -e visible false
+}
+
 launch_app() {
   if [ "$PLATFORM" = ios ]; then
     xcrun simctl launch "$DEVICE" "$IOS_BUNDLE"
@@ -123,6 +136,7 @@ run_mode() {
   : > "$log"
   build_and_install "$mode"
   stop_app
+  clean_status_bar
   listen "$log" &
   local listener=$!
   sleep 3
