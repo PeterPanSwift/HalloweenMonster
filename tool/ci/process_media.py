@@ -16,7 +16,8 @@ PLATFORMS = {
     "ios": ("HalloweenMonster_iPhone18ProMax.mp4", "appstore", (1320, 2868)),
     "android": ("HalloweenMonster_Pixel10.mp4", "googleplay", None),
 }
-LEAD_IN, TAIL = 0.4, 0.4
+# END 之後 Android 會立刻顯示 integration_test 的 "Test finished." 畫面，所以結尾往前收一點。
+LEAD_IN, TAIL = 0.4, -0.3
 
 
 def to_ms(raw):

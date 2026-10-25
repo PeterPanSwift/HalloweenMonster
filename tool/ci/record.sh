@@ -130,6 +130,26 @@ listen() {
   done
 }
 
+# iOS：輪詢 App container 裡的 tmp/hm_shot.txt，比 log stream 即時。
+poll_ios_shots() {
+  local container="" f name
+  for _ in $(seq 1 120); do
+    container=$(xcrun simctl get_app_container "$DEVICE" "$IOS_BUNDLE" data 2>/dev/null || true)
+    [ -n "$container" ] && break
+    sleep 0.5
+  done
+  f="$container/tmp/hm_shot.txt"
+  while true; do
+    if [ -f "$f" ]; then
+      name=$(tr -cd 'A-Za-z0-9_' < "$f")
+      if [ -n "$name" ] && [ ! -f "$OUT/shots/$name.png" ]; then
+        screenshot "$OUT/shots/$name.png" && echo ">> captured $name (file)"
+      fi
+    fi
+    sleep 0.25
+  done
+}
+
 run_mode() {
   local mode=$1 done_marker=$2
   local log="$OUT/device_$mode.log"
@@ -142,6 +162,12 @@ run_mode() {
   sleep 3
   # iOS 的 log stream 會延遲數秒，所以影片在啟動 App 前就開始錄，事後再依 @@MARK 裁剪。
   if [ "$mode" = video ]; then start_recording; fi
+  local poller=""
+  if [ "$PLATFORM" = ios ] && [ "$mode" = shots ]; then
+    rm -f "$(xcrun simctl get_app_container "$DEVICE" "$IOS_BUNDLE" data 2>/dev/null || echo /nonexistent)/tmp/hm_shot.txt"
+    poll_ios_shots &
+    poller=$!
+  fi
   launch_app
   local deadline=$(( $(date +%s) + 300 ))
   until grep -q "$done_marker" "$log"; do
@@ -149,12 +175,14 @@ run_mode() {
       || [ "$(date +%s)" -gt "$deadline" ]; then
       echo "::error::$mode run failed or timed out"
       cat "$log"
+      [ -n "$poller" ] && kill "$poller" 2>/dev/null
       stop_device_log; stop_app
       return 1
     fi
     sleep 1
   done
   sleep 6
+  [ -n "$poller" ] && kill "$poller" 2>/dev/null
   stop_device_log
   wait "$listener" 2>/dev/null || true
   stop_app

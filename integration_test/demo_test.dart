@@ -2,6 +2,8 @@
 //
 // MODE=video：完整操作流程，前後輸出 @@MARK 時間戳，CI 依此裁掉多餘片段。
 // MODE=shots：停在各個畫面並輸出 @@SHOT，CI 收到後用 simctl / adb 截圖。
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:halloween_monster/main.dart' as app;
@@ -101,11 +103,13 @@ Future<void> video(WidgetTester tester) async {
   mark('END');
 }
 
-// iOS 的 log stream 可能延遲數秒才送到 CI，所以每個畫面停久一點。
+// iOS 的 log stream 可能延遲好幾秒，所以也把畫面名稱寫進 App 的 tmp 資料夾，
+// CI 直接從模擬器的 App container 輪詢這個檔案。
 Future<void> shot(WidgetTester tester, String name) async {
   await wait(tester, 1500);
   debugPrint('@@SHOT $name');
-  await wait(tester, 9000);
+  File('${Directory.systemTemp.path}/hm_shot.txt').writeAsStringSync(name);
+  await wait(tester, 6000);
 }
 
 Future<void> shots(WidgetTester tester) async {
