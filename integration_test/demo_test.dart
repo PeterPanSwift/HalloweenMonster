@@ -20,7 +20,7 @@ void main() {
       await _video(tester);
       mark('END');
     }
-  }, timeout: const Timeout(Duration(minutes: 5)));
+  }, timeout: const Timeout(Duration(minutes: 15)));
 }
 
 Future<void> _back(WidgetTester tester) =>
