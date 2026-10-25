@@ -18,7 +18,8 @@ void main() {
   testWidgets('demo ($mode)', (tester) async {
     debugPrint('@@READY');
     app.main();
-    await wait(tester, 4000);
+    // iOS 模擬器上的 debug 版第一個畫面要好幾秒才出來
+    await wait(tester, 8000);
     if (mode == 'shots') {
       await shots(tester);
     } else {
