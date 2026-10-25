@@ -16,25 +16,34 @@ if [ -z "$TYPE" ]; then
   exit 1
 fi
 
-newest_runtime() {
+runtimes() {
+  # 由新到舊列出可用的 iOS runtime
   xcrun simctl list runtimes -j | python3 -c "
 import json, sys
 rts = [r for r in json.load(sys.stdin)['runtimes'] if r['platform'] == 'iOS' and r['isAvailable']]
-rts.sort(key=lambda r: [int(x) for x in r['version'].split('.')])
-print(rts[-1]['identifier'] if rts else '')
+rts.sort(key=lambda r: [int(x) for x in r['version'].split('.')], reverse=True)
+print('\\n'.join(r['identifier'] for r in rts))
 "
 }
 
-RUNTIME=$(newest_runtime)
+create_device() {
+  for rt in $(runtimes); do
+    UDID=$(xcrun simctl create "$NAME" "$TYPE" "$rt" 2>&1 || true)
+    if [[ "$UDID" =~ ^[0-9A-F-]{36}$ ]]; then
+      RUNTIME=$rt
+      return 0
+    fi
+    echo "  $rt: $UDID"
+  done
+  return 1
+}
+
 UDID=""
-if [ -n "$RUNTIME" ]; then
-  UDID=$(xcrun simctl create "$NAME" "$TYPE" "$RUNTIME" 2>/dev/null || true)
-fi
-if [ -z "$UDID" ]; then
+RUNTIME=""
+if ! create_device; then
   echo "No compatible iOS runtime yet, downloading the platform for this Xcode..."
   xcodebuild -downloadPlatform iOS
-  RUNTIME=$(newest_runtime)
-  UDID=$(xcrun simctl create "$NAME" "$TYPE" "$RUNTIME")
+  create_device
 fi
 echo "Created $NAME ($TYPE) on $RUNTIME: $UDID"
 

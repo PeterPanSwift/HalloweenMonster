@@ -4,6 +4,9 @@ set -euo pipefail
 API=36
 IMAGE="system-images;android-$API;google_apis;x86_64"
 SDK="$ANDROID_HOME"
+export ANDROID_USER_HOME="$HOME/.android"
+export ANDROID_AVD_HOME="$ANDROID_USER_HOME/avd"
+mkdir -p "$ANDROID_AVD_HOME"
 
 # 取得最新的 cmdline-tools（裡面有最新的裝置定義，例如 pixel_10）。
 # 已有 latest 時 sdkmanager 會裝到 latest-2。
@@ -14,7 +17,7 @@ TOOLS="$SDK/cmdline-tools/latest"
 export PATH="$TOOLS/bin:$SDK/emulator:$SDK/platform-tools:$PATH"
 sdkmanager --version
 sdkmanager --install emulator platform-tools "$IMAGE" > /dev/null
-avdmanager list device -c | grep -i pixel || true
+avdmanager list device -c | grep -i "pixel_1[0-9]" || echo "(no pixel_1x profiles)"
 
 if avdmanager list device -c | grep -qx "pixel_10"; then
   echo no | avdmanager create avd -n Pixel_10 -k "$IMAGE" -d pixel_10 --force
@@ -22,11 +25,11 @@ else
   # 舊版 cmdline-tools 沒有 Pixel 10 定義時，以 Pixel 9 為基礎改成 Pixel 10 的規格。
   echo "::warning::pixel_10 profile not found, deriving it from pixel_9"
   echo no | avdmanager create avd -n Pixel_10 -k "$IMAGE" -d pixel_9 --force
-  CFG="$HOME/.android/avd/Pixel_10.avd/config.ini"
+  CFG="$ANDROID_AVD_HOME/Pixel_10.avd/config.ini"
   sed -i -e 's/^hw.lcd.width=.*/hw.lcd.width=1080/' -e 's/^hw.lcd.height=.*/hw.lcd.height=2424/' \
     -e 's/^hw.lcd.density=.*/hw.lcd.density=420/' -e 's/^hw.device.name=.*/hw.device.name=pixel_10/' "$CFG"
 fi
-CFG="$HOME/.android/avd/Pixel_10.avd/config.ini"
+CFG="$ANDROID_AVD_HOME/Pixel_10.avd/config.ini"
 {
   echo "hw.ramSize=4096"
   echo "disk.dataPartition.size=6G"
