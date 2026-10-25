@@ -144,37 +144,42 @@ stop_recording() {
   fi
 }
 
-# 背景監聽裝置 log：全部記錄下來，看到 @@SHOT 就截圖（Android 的 logcat 是即時的）。
+# 背景監聽裝置 log：全部記錄下來。Android 的 logcat 是即時的，看到 @@SHOT 就截圖並回覆 ack；
+# iOS 的 log 會延遲，截圖交給 poll_ios_shots。
 # 迴圈內的指令一律 < /dev/null，否則 adb / simctl 會讀走 log 管線裡的下一行（例如 @@MARK START）。
 listen() {
-  local log=$1
+  local log=$1 rest name dir
   device_log | while IFS= read -r line; do
     echo "$line" >> "$log"
     case "$line" in
       *"@@SHOT "*)
-        name=$(echo "${line##*@@SHOT }" | tr -cd 'A-Za-z0-9_')
-        if [ -n "$name" ] && [ ! -f "$OUT/shots/$name.png" ]; then
-          screenshot "$OUT/shots/$name.png" && echo ">> captured $name"
-        fi
+        [ "$PLATFORM" = android ] || continue
+        rest=${line##*@@SHOT }
+        name=$(echo "${rest%% *}" | tr -cd 'A-Za-z0-9_')
+        dir=$(echo "${rest#* }" | tr -d '\r')
+        [ -n "$name" ] || continue
+        screenshot "$OUT/shots/$name.png" && echo ">> captured $name"
+        adb -s "$DEVICE" shell "run-as $APP_ID sh -c 'echo $name > $dir/demo_shot_ack.txt'" < /dev/null
         ;;
     esac
   done
 }
 
-# iOS 的 log stream 可能晚 1～10 秒才送到，截圖改為輪詢 App container 裡的 tmp/demo_shot.txt。
+# iOS：輪詢 App container 裡的 tmp/demo_shot.txt（比 log stream 即時），截完圖寫 demo_shot_ack.txt 回覆。
 poll_ios_shots() {
-  local container="" f name
+  local container="" name last=""
   for _ in $(seq 1 120); do
     container=$(xcrun simctl get_app_container "$DEVICE" "$APP_ID" data 2>/dev/null || true)
     [ -n "$container" ] && break
     sleep 0.5
   done
-  f="$container/tmp/$SHOT_FILE"
   while true; do
-    if [ -f "$f" ]; then
-      name=$(tr -cd 'A-Za-z0-9_' < "$f")
-      if [ -n "$name" ] && [ ! -f "$OUT/shots/$name.png" ]; then
-        screenshot "$OUT/shots/$name.png" && echo ">> captured $name (file)"
+    if [ -f "$container/tmp/$SHOT_FILE" ]; then
+      name=$(tr -cd 'A-Za-z0-9_' < "$container/tmp/$SHOT_FILE")
+      if [ -n "$name" ] && [ "$name" != "$last" ]; then
+        screenshot "$OUT/shots/$name.png" && echo ">> captured $name"
+        printf '%s' "$name" > "$container/tmp/demo_shot_ack.txt"
+        last=$name
       fi
     fi
     sleep 0.25
@@ -198,7 +203,9 @@ run_mode() {
   if [ "$mode" = video ]; then start_recording; fi
   local poller=""
   if [ "$PLATFORM" = ios ] && [ "$mode" = shots ]; then
-    rm -f "$(xcrun simctl get_app_container "$DEVICE" "$APP_ID" data 2>/dev/null || echo /nonexistent)/tmp/$SHOT_FILE"
+    local c
+    c=$(xcrun simctl get_app_container "$DEVICE" "$APP_ID" data 2>/dev/null || echo /nonexistent)
+    rm -f "$c/tmp/$SHOT_FILE" "$c/tmp/demo_shot_ack.txt"
     poll_ios_shots &
     poller=$!
   fi
@@ -222,6 +229,7 @@ run_mode() {
   wait "$listener" 2>/dev/null || true
   stop_app
   grep -E "@@|tests passed|tests failed" "$log" || true
+  if grep -q "@@WARN" "$log"; then echo "::warning::$(grep -h '@@WARN' "$log" | sed 's/.*@@WARN //' | sort -u | tr '\n' ';')"; fi
   if grep -q "EXCEPTION CAUGHT" "$log"; then
     echo "::warning::$mode run logged an exception after finishing"
     grep -A40 "EXCEPTION CAUGHT" "$log" | head -60

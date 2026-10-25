@@ -1,8 +1,9 @@
 // 給 CI 錄影與截圖用的 integration_test 小工具，搭配 tool/ci/record.sh。
 //
-// 測試會被編成 App 直接啟動（不經過 flutter test），透過兩個管道通知 CI：
-// - 裝置 log：@@READY、@@SHOT <名稱>、@@MARK <START|END|DONE> <毫秒時間戳>
-// - App tmp 資料夾裡的 demo_shot.txt（iOS 的 log stream 會延遲好幾秒，CI 改輪詢這個檔案）
+// 測試會被編成 App 直接啟動（不經過 flutter test），透過兩個管道與 CI 溝通：
+// - 裝置 log：@@READY、@@SHOT <名稱> <tmp 路徑>、@@MARK <START|END|DONE> <毫秒時間戳>
+// - App tmp 資料夾：demo_shot.txt（iOS 的 log 會延遲，CI 輪詢這個檔案）與
+//   demo_shot_ack.txt（CI 截完圖後寫入，測試收到才繼續）
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -76,11 +77,33 @@ Future<void> tap(WidgetTester tester, Finder target, {int after = 1600}) async {
   await pause(tester, after);
 }
 
-/// 停在目前畫面讓 CI 截圖。名稱就是截圖檔名（只用英數字與底線），
-/// 也是 tool/ci/store.json 裡 captions 的 key。
-Future<void> shot(WidgetTester tester, String name, {int hold = 6000}) async {
+/// 停在目前畫面讓 CI 截圖，並等 CI 回報「截好了」才繼續（握手）。
+///
+/// 模擬器上第一次截圖可能要 6～11 秒、iOS 的 log 也會延遲，固定等待時間一定會遇到截到下一個畫面的情況，
+/// 所以 CI 截完圖後會把名稱寫進 App tmp 資料夾的 demo_shot_ack.txt，這裡輪詢到才往下走。
+/// 名稱就是截圖檔名（只用英數字與底線），也是 tool/ci/store.json 裡 captions 的 key。
+Future<void> shot(
+  WidgetTester tester,
+  String name, {
+  Duration timeout = const Duration(seconds: 40),
+}) async {
   await pause(tester, 1500);
-  debugPrint('@@SHOT $name');
-  File('${Directory.systemTemp.path}/demo_shot.txt').writeAsStringSync(name);
-  await pause(tester, hold);
+  final dir = Directory.systemTemp.path;
+  final ack = File('$dir/demo_shot_ack.txt');
+  if (ack.existsSync()) ack.deleteSync();
+  debugPrint('@@SHOT $name $dir');
+  File('$dir/demo_shot.txt').writeAsStringSync(name);
+  if (_dryRun) {
+    await pause(tester, 500);
+    return;
+  }
+  final deadline = DateTime.now().add(timeout);
+  while (DateTime.now().isBefore(deadline)) {
+    await pause(tester, 250);
+    if (ack.existsSync() && ack.readAsStringSync().trim() == name) {
+      await pause(tester, 300);
+      return;
+    }
+  }
+  debugPrint('@@WARN no screenshot ack for $name');
 }
