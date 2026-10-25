@@ -28,7 +28,7 @@ MONSTERS = {
     "frankenstein": ["Frankenstein 1831 frontispiece", "Frankenstein Edison 1910 film"],
     "mummy": ["Egyptian mummy museum", "mummy British Museum"],
     "witch": ["Halloween postcard witch", "witch broomstick illustration", "Goya Witches Flight"],
-    "ghost": ["Halloween postcard ghost", "Pepper's ghost illustration", "ghost spectre engraving"],
+    "ghost": ["Marley's Ghost John Leech", "Mumler spirit photograph", "ghost illustration Dickens"],
     "skeleton": ["Posada Calavera Catrina", "skeleton dance danse macabre"],
     "headless_horseman": ["Quidor Headless Horseman Ichabod Crane", "Headless Horseman illustration"],
     "banshee": ["banshee illustration", "banshee Ireland legend"],
