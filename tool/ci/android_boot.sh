@@ -5,9 +5,15 @@ API=36
 IMAGE="system-images;android-$API;google_apis;x86_64"
 SDK="$ANDROID_HOME"
 
-yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmdline-tools;latest" >/dev/null
-export PATH="$SDK/cmdline-tools/latest/bin:$SDK/emulator:$SDK/platform-tools:$PATH"
-yes | sdkmanager --install emulator platform-tools "$IMAGE" >/dev/null
+# 取得最新的 cmdline-tools（裡面有最新的裝置定義，例如 pixel_10）。
+# 已有 latest 時 sdkmanager 會裝到 latest-2。
+(yes || true) | "$SDK/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+"$SDK/cmdline-tools/latest/bin/sdkmanager" --install "cmdline-tools;latest" > /dev/null
+TOOLS="$SDK/cmdline-tools/latest"
+[ -d "$SDK/cmdline-tools/latest-2" ] && TOOLS="$SDK/cmdline-tools/latest-2"
+export PATH="$TOOLS/bin:$SDK/emulator:$SDK/platform-tools:$PATH"
+sdkmanager --version
+sdkmanager --install emulator platform-tools "$IMAGE" > /dev/null
 avdmanager list device -c | grep -i pixel || true
 
 if avdmanager list device -c | grep -qx "pixel_10"; then

@@ -24,17 +24,17 @@ permissions:
 jobs:
   ios:
     name: iPhone 18 Pro Max
-    runs-on: macos-26
+    # iPhone 18 Pro Max 模擬器需要 Xcode 27（GitHub 的 xcode-27 映像，macOS 27）
+    runs-on: xcode-27
     timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
 
-      - name: Select newest Xcode
+      - name: Xcode version
         run: |
           ls -d /Applications/Xcode*.app
-          XCODE=$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)
-          sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          xcrun simctl list runtimes
 
       - uses: subosito/flutter-action@v2
         with:
