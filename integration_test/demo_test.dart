@@ -35,7 +35,12 @@ Future<void> scroll(WidgetTester tester, String key, double dy, {int ms = 900}) 
 }
 
 Future<void> tap(WidgetTester tester, String key, {int after = 1600}) async {
-  await tester.tap(find.byKey(Key(key)).first);
+  final target = find.byKey(Key(key)).first;
+  if (target.hitTestable().evaluate().isEmpty) {
+    await tester.scrollUntilVisible(target, 250, scrollable: find.byType(Scrollable).first);
+    await wait(tester, 600);
+  }
+  await tester.tap(target);
   await wait(tester, after);
 }
 
