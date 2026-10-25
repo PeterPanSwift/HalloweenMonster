@@ -188,6 +188,9 @@ run_mode() {
   build_and_install "$mode"
   stop_app
   clean_status_bar
+  # 新開機的模擬器第一次截圖要 6 秒左右（擷取服務在啟動），會截到下一個畫面，所以先暖機。
+  screenshot "$OUT/warmup.png" > /dev/null 2>&1 || true
+  rm -f "$OUT/warmup.png"
   listen "$log" &
   local listener=$!
   sleep 3
