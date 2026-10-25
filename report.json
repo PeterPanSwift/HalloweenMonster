@@ -1,0 +1,42 @@
+{
+  "ios": {
+    "device": "iPhone 18 Pro Max|com.apple.CoreSimulator.SimRuntime.iOS-27-0",
+    "video": {
+      "raw_seconds": 59.03,
+      "trim": [
+        7.95,
+        48.3
+      ],
+      "seconds": 40.33,
+      "megabytes": 4.58,
+      "raw_megabytes": 156.11
+    },
+    "screenshots": [
+      "01_home.png",
+      "02_collection.png",
+      "03_detail.png",
+      "04_story.png",
+      "05_witch.png"
+    ]
+  },
+  "android": {
+    "device": "Pixel 10|android-36",
+    "video": {
+      "raw_seconds": 49.71,
+      "trim": [
+        5.74,
+        47.11
+      ],
+      "seconds": 41.37,
+      "megabytes": 4.16,
+      "raw_megabytes": 24.73
+    },
+    "screenshots": [
+      "01_home.png",
+      "02_collection.png",
+      "03_detail.png",
+      "04_story.png",
+      "05_witch.png"
+    ]
+  }
+}
