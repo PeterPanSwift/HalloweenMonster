@@ -1,20 +1,37 @@
 #!/usr/bin/env bash
-# 在已開機的模擬器上執行 integration_test：先截上架圖，再錄操作影片。
+# 在已開機的模擬器上執行 demo 測試：先截上架圖（MODE=shots），再錄操作影片（MODE=video）。
 # Usage: tool/ci/record.sh ios|android <device-id> <out-dir>
+# 環境變數：DEMO_TEST（預設 integration_test/demo_test.dart）、
+#           IOS_BUNDLE_ID / ANDROID_APP_ID（選用，預設自動偵測）
 #
-# 不透過 `flutter test` 連線裝置（iOS 27 模擬器上會卡在連 VM service，Android 則會把
-# 測試輸出累積到結束才印），而是把測試檔直接編成 App（-t），安裝後啟動，測試會在 App
-# 啟動時自動執行；@@READY / @@SHOT / @@MARK 訊號從裝置 log 即時讀取。
+# 為什麼不用 `flutter test`：
+# - iOS 27 模擬器上 flutter test 編譯完會卡在連 App 的 VM service，沒有任何輸出。
+# - Android 上 flutter test 會把測試的 print 累積到測試結束才一次印出，無法即時觸發截圖。
+# 所以把測試檔當 App 進入點編譯（-t），安裝後直接啟動；flutter_test 在沒有測試工具時
+# 會自己執行 testWidgets。測試透過裝置 log 的 @@SHOT / @@MARK 與 App tmp 資料夾裡的
+# demo_shot.txt 通知 CI。
 set -euo pipefail
 PLATFORM=$1
 DEVICE=$2
 OUT=$(mkdir -p "$3" && cd "$3" && pwd)
 mkdir -p "$OUT/shots"
-TEST=integration_test/demo_test.dart
-IOS_BUNDLE=com.peterpanswift.halloweenMonster
-ANDROID_PACKAGE=com.peterpanswift.halloween_monster
+TEST=${DEMO_TEST:-integration_test/demo_test.dart}
+SHOT_FILE=demo_shot.txt
+APP_ID=""
 
 host_ms() { python3 -c 'import time; print(int(time.time() * 1000))'; }
+
+detect_app_id() {
+  if [ "$PLATFORM" = ios ]; then
+    APP_ID=${IOS_BUNDLE_ID:-$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' \
+      build/ios/iphonesimulator/Runner.app/Info.plist)}
+  else
+    APP_ID=${ANDROID_APP_ID:-$(grep -hoE 'applicationId\s*=?\s*"[^"]+"' \
+      android/app/build.gradle.kts android/app/build.gradle 2>/dev/null | head -1 | sed -E 's/.*"([^"]+)"/\1/')}
+  fi
+  [ -n "$APP_ID" ] || { echo "::error::could not detect app id"; exit 1; }
+  echo "app id: $APP_ID"
+}
 
 build_and_install() {
   local mode=$1
@@ -25,9 +42,11 @@ build_and_install() {
     flutter build apk --debug -t "$TEST" --dart-define=MODE="$mode" --no-pub
     adb -s "$DEVICE" install -r build/app/outputs/flutter-apk/app-debug.apk
   fi
+  detect_app_id
 }
 
-# 上架截圖用的乾淨狀態列（Android demo mode；iOS 已在開機時用 simctl status_bar 設定）
+# 上架截圖用的乾淨狀態列。iOS 在開機時已用 simctl status_bar 設定；Android 的 demo mode
+# 要在 SystemUI 完全就緒後才會生效，所以每次啟動 App 前再送一次。
 clean_status_bar() {
   [ "$PLATFORM" = android ] || return 0
   demo() { adb -s "$DEVICE" shell am broadcast -a com.android.systemui.demo -p com.android.systemui -e command "$@" > /dev/null; }
@@ -42,17 +61,19 @@ clean_status_bar() {
 
 launch_app() {
   if [ "$PLATFORM" = ios ]; then
-    xcrun simctl launch "$DEVICE" "$IOS_BUNDLE"
+    xcrun simctl launch "$DEVICE" "$APP_ID"
   else
-    adb -s "$DEVICE" shell am start -n "$ANDROID_PACKAGE/.MainActivity"
+    local activity
+    activity=$(adb -s "$DEVICE" shell cmd package resolve-activity --brief "$APP_ID" | tr -d '\r' | tail -1)
+    adb -s "$DEVICE" shell am start -n "$activity"
   fi
 }
 
 stop_app() {
   if [ "$PLATFORM" = ios ]; then
-    xcrun simctl terminate "$DEVICE" "$IOS_BUNDLE" || true
+    xcrun simctl terminate "$DEVICE" "$APP_ID" 2>/dev/null || true
   else
-    adb -s "$DEVICE" shell am force-stop "$ANDROID_PACKAGE" || true
+    adb -s "$DEVICE" shell am force-stop "$APP_ID" || true
   fi
 }
 
@@ -82,14 +103,15 @@ screenshot() {
   fi
 }
 
-# 錄影起點與 @@MARK 都是裝置時間（iOS 模擬器與主機共用時鐘），可直接相減。
+# 錄影起點與 @@MARK 都是裝置時間（iOS 模擬器與主機共用時鐘），事後可直接相減來裁剪。
 start_recording() {
   if [ "$PLATFORM" = ios ]; then
     xcrun simctl io "$DEVICE" recordVideo --codec=h264 --force "$OUT/raw.mp4" < /dev/null > "$OUT/rec.log" 2>&1 &
     for _ in $(seq 1 50); do grep -q "Recording started" "$OUT/rec.log" 2>/dev/null && break; sleep 0.1; done
     host_ms > "$OUT/rec_start_ms"
   else
-    # 在裝置上先印出時間再 exec screenrecord，取得錄影起點的裝置時間。
+    # 先在裝置上印出時間再 exec screenrecord，取得錄影起點的裝置時間。
+    # screenrecord 最長 180 秒，demo 流程要控制在這之內。
     adb -s "$DEVICE" shell 'date +%s%N; exec screenrecord --bit-rate 16000000 --time-limit 180 /sdcard/demo.mp4' \
       < /dev/null > "$OUT/rec.log" 2>&1 &
     for _ in $(seq 1 50); do [ -s "$OUT/rec.log" ] && break; sleep 0.1; done
@@ -113,8 +135,8 @@ stop_recording() {
   fi
 }
 
-# 背景監聽裝置 log：記錄 log、依 @@SHOT 截圖。
-# 迴圈內的指令一律 < /dev/null，避免它們吃掉 log 管線裡的下一行。
+# 背景監聽裝置 log：全部記錄下來，看到 @@SHOT 就截圖（Android 的 logcat 是即時的）。
+# 迴圈內的指令一律 < /dev/null，否則 adb / simctl 會讀走 log 管線裡的下一行（例如 @@MARK START）。
 listen() {
   local log=$1
   device_log | while IFS= read -r line; do
@@ -122,7 +144,7 @@ listen() {
     case "$line" in
       *"@@SHOT "*)
         name=$(echo "${line##*@@SHOT }" | tr -cd 'A-Za-z0-9_')
-        if [ ! -f "$OUT/shots/$name.png" ]; then
+        if [ -n "$name" ] && [ ! -f "$OUT/shots/$name.png" ]; then
           screenshot "$OUT/shots/$name.png" && echo ">> captured $name"
         fi
         ;;
@@ -130,15 +152,15 @@ listen() {
   done
 }
 
-# iOS：輪詢 App container 裡的 tmp/hm_shot.txt，比 log stream 即時。
+# iOS 的 log stream 可能晚 1～10 秒才送到，截圖改為輪詢 App container 裡的 tmp/demo_shot.txt。
 poll_ios_shots() {
   local container="" f name
   for _ in $(seq 1 120); do
-    container=$(xcrun simctl get_app_container "$DEVICE" "$IOS_BUNDLE" data 2>/dev/null || true)
+    container=$(xcrun simctl get_app_container "$DEVICE" "$APP_ID" data 2>/dev/null || true)
     [ -n "$container" ] && break
     sleep 0.5
   done
-  f="$container/tmp/hm_shot.txt"
+  f="$container/tmp/$SHOT_FILE"
   while true; do
     if [ -f "$f" ]; then
       name=$(tr -cd 'A-Za-z0-9_' < "$f")
@@ -160,17 +182,18 @@ run_mode() {
   listen "$log" &
   local listener=$!
   sleep 3
-  # iOS 的 log stream 會延遲數秒，所以影片在啟動 App 前就開始錄，事後再依 @@MARK 裁剪。
+  # iOS 的 log 會延遲，所以影片在啟動 App 前就開始錄，事後再依 @@MARK 時間戳裁剪。
   if [ "$mode" = video ]; then start_recording; fi
   local poller=""
   if [ "$PLATFORM" = ios ] && [ "$mode" = shots ]; then
-    rm -f "$(xcrun simctl get_app_container "$DEVICE" "$IOS_BUNDLE" data 2>/dev/null || echo /nonexistent)/tmp/hm_shot.txt"
+    rm -f "$(xcrun simctl get_app_container "$DEVICE" "$APP_ID" data 2>/dev/null || echo /nonexistent)/tmp/$SHOT_FILE"
     poll_ios_shots &
     poller=$!
   fi
   launch_app
   local deadline=$(( $(date +%s) + 300 ))
   until grep -q "$done_marker" "$log"; do
+    # 結束訊號與例外可能在同一秒寫入，所以判斷失敗前再確認一次結束訊號
     if { grep -q "tests failed\|EXCEPTION CAUGHT" "$log" && ! grep -q "$done_marker" "$log"; } \
       || [ "$(date +%s)" -gt "$deadline" ]; then
       echo "::error::$mode run failed or timed out"

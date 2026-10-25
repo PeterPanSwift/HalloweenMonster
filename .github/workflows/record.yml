@@ -3,12 +3,12 @@ name: Record demo & store screenshots
 on:
   workflow_dispatch:
   push:
-    branches: [master]
+    branches: [main, master, skill-check]
     paths:
       - lib/**
       - assets/**
       - integration_test/**
-      - tool/**
+      - tool/ci/**
       - pubspec.yaml
       - ios/**
       - android/**
@@ -21,37 +21,36 @@ concurrency:
 permissions:
   contents: write
 
+env:
+  APP_NAME: HalloweenMonster                     # 影片檔名前綴：<APP_NAME>_<裝置>.mp4
+  IOS_DEVICE: iPhone 18 Pro Max       # simctl 的機型名稱，要跟 ios job 的 runs-on 映像相符
+  ANDROID_PROFILE: pixel_10           # avdmanager list device -c 裡的名稱
+  ANDROID_DEVICE_NAME: Pixel 10
+  ANDROID_API: "36"
+  ANDROID_FALLBACK: ""                # 例如 "pixel_9:1080x2424:420"，找不到 ANDROID_PROFILE 時使用
+  DEMO_TEST: integration_test/demo_test.dart
+  MEDIA_BRANCH: media-skill-check                 # 成果推到這個分支（會被強制覆寫）
+  STORE_FONT_URL: https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf
+
 jobs:
   ios:
-    name: iPhone 18 Pro Max
-    # iPhone 18 Pro Max 模擬器需要 Xcode 27（GitHub 的 xcode-27 映像，macOS 27）
+    name: iOS
+    # 新機型需要新版 Xcode。GitHub 的映像以 Xcode 主版本命名（xcode-27 = Xcode 27 / macOS 27），
+    # 一般的 macos-26 只到 Xcode 26。查法見 skill 的 references/devices.md。
     runs-on: xcode-27
-    timeout-minutes: 75
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
-      - name: Xcode version
-        run: |
-          ls -d /Applications/Xcode*.app
-          xcodebuild -version
-          xcrun simctl list runtimes
-
+      - run: xcodebuild -version && xcrun simctl list runtimes
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-
       - run: flutter --version && flutter pub get
-
       - name: Boot simulator
-        run: tool/ci/ios_boot.sh
-
+        run: tool/ci/ios_boot.sh out/ios
       - name: Record
         run: tool/ci/record.sh ios "$SIM_ID" out/ios
-
-      - if: always()
-        run: mkdir -p out/ios && cp device.txt out/ios/ || true
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -60,42 +59,31 @@ jobs:
           retention-days: 7
 
   android:
-    name: Pixel 10
+    name: Android
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
-
       - name: Enable KVM
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
           sudo udevadm control --reload-rules
           sudo udevadm trigger --name-match=kvm
-
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
-
       - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
-
       - run: flutter --version && flutter pub get
-
       - name: Warm up Gradle build
         run: flutter build apk --debug
-
       - name: Boot emulator
-        run: tool/ci/android_boot.sh
-
+        run: tool/ci/android_boot.sh out/android
       - name: Record
         run: tool/ci/record.sh android emulator-5554 out/android
-
-      - if: always()
-        run: mkdir -p out/android && cp device.txt out/android/ || true
-
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -110,29 +98,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/download-artifact@v4
         with:
           path: media-in
-
       - name: Install tools
         run: |
           sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg > /dev/null
           pip install -q pillow
-          curl -sSfL -o NotoSansTC.ttf "https://raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC%5Bwght%5D.ttf"
-
+          curl -sSfL -o store_font.ttf "$STORE_FONT_URL"
       - name: Process media
-        run: python3 tool/ci/process_media.py media-in media NotoSansTC.ttf
-
+        run: python3 tool/ci/process_media.py media-in media tool/ci/store.json store_font.ttf
       - name: Push to the media branch
         run: |
           cp -r media /tmp/media
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan media
+          git checkout --orphan "$MEDIA_BRANCH"
           git rm -rq --cached .
           find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
           cp -r /tmp/media/. .
           git add -A
           git commit -qm "Demo videos and store screenshots (${GITHUB_SHA::7})"
-          git push -f origin media
+          git push -f origin "$MEDIA_BRANCH"

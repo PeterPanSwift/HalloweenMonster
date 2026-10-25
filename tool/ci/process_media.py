@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """裁剪、壓縮錄影並產生上架截圖。
 
-Usage: python3 tool/ci/process_media.py <in_dir> <out_dir> <font.ttf>
-<in_dir>/<platform>/ 需包含 record.sh 的輸出：raw.mp4、marks.txt、rec_start_ms、shots/、device.txt
+Usage: python3 tool/ci/process_media.py <in_dir> <out_dir> <store.json> <font.ttf>
+
+<in_dir>/<ios|android>/ 是 record.sh 的輸出：raw.mp4、marks.txt、rec_start_ms、shots/、device.txt。
+影片檔名為 <APP_NAME>_<裝置名稱去空白>.mp4（APP_NAME 取自環境變數）。
 """
 import json
 import os
@@ -10,20 +12,24 @@ import shutil
 import subprocess
 import sys
 
+from PIL import Image
+
 HERE = os.path.dirname(os.path.abspath(__file__))
+# platform: (上架截圖類型, 原始截圖要符合的尺寸；None 表示保留裝置原尺寸)
 PLATFORMS = {
-    # platform: (影片檔名, 上架截圖類型, 原始截圖目標尺寸)
-    "ios": ("HalloweenMonster_iPhone18ProMax.mp4", "appstore", (1320, 2868)),
-    "android": ("HalloweenMonster_Pixel10.mp4", "googleplay", None),
+    "ios": ("appstore", (1320, 2868)),  # App Store Connect 必填的 6.9 吋
+    "android": ("googleplay", None),
 }
-# END 之後 Android 會立刻顯示 integration_test 的 "Test finished." 畫面，所以結尾往前收一點。
+# START 之前多留一點；END 之後 Android 會立刻顯示 integration_test 的「Test finished.」，所以往前收。
 LEAD_IN, TAIL = 0.4, -0.3
+VIDEO_HEIGHT = int(os.environ.get("VIDEO_HEIGHT", "1280"))
+VIDEO_CRF = os.environ.get("VIDEO_CRF", "26")
 
 
 def to_ms(raw):
     digits = "".join(c for c in raw if c.isdigit())
     if len(digits) >= 13:
-        return int(digits[:13])
+        return int(digits[:13])  # 毫秒或奈秒都取前 13 位
     return int(digits) * 1000  # 只有秒
 
 
@@ -48,10 +54,10 @@ def process_video(src_dir, out_dir, name):
     out = os.path.join(out_dir, name)
     subprocess.check_call([
         "ffmpeg", "-y", "-v", "error", "-i", raw, "-ss", f"{start:.3f}", "-to", f"{end:.3f}",
-        "-vf", "fps=30,scale=-2:1280:flags=lanczos", "-c:v", "libx264", "-preset", "slow",
-        "-crf", "26", "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", out,
+        "-vf", f"fps=30,scale=-2:{VIDEO_HEIGHT}:flags=lanczos", "-c:v", "libx264", "-preset", "slow",
+        "-crf", VIDEO_CRF, "-pix_fmt", "yuv420p", "-movflags", "+faststart", "-an", out,
     ])
-    # 檢查用：裁剪後的第一格與最後一格
+    # 驗收用：裁剪後的第一格、最後一格，以及每 3 秒一格的縮圖
     check = os.path.join(out_dir, "_check")
     os.makedirs(check, exist_ok=True)
     base = os.path.splitext(name)[0]
@@ -59,6 +65,8 @@ def process_video(src_dir, out_dir, name):
                            os.path.join(check, f"{base}_first.jpg")])
     subprocess.check_call(["ffmpeg", "-y", "-v", "error", "-sseof", "-0.1", "-i", out, "-frames:v", "1",
                            os.path.join(check, f"{base}_last.jpg")])
+    subprocess.check_call(["ffmpeg", "-y", "-v", "error", "-i", out, "-vf", "fps=1/3,scale=-2:400,tile=20x1",
+                           "-frames:v", "1", os.path.join(check, f"{base}_sheet.jpg")])
     return {
         "raw_seconds": round(total, 2),
         "trim": [round(start, 2), round(end, 2)],
@@ -68,44 +76,46 @@ def process_video(src_dir, out_dir, name):
     }
 
 
+def fit_exact(path, size):
+    """等比縮放後置中裁切成指定尺寸（裝置解析度與商店規格不同時用）。"""
+    im = Image.open(path).convert("RGB")
+    if im.size != size:
+        scale = max(size[0] / im.width, size[1] / im.height)
+        im = im.resize((round(im.width * scale), round(im.height * scale)), Image.LANCZOS)
+        left, top = (im.width - size[0]) // 2, (im.height - size[1]) // 2
+        im = im.crop((left, top, left + size[0], top + size[1]))
+    im.save(path, optimize=True)
+
+
 def main():
-    in_dir, out_dir, font = sys.argv[1:4]
+    in_dir, out_dir, store_json, font = sys.argv[1:5]
+    app = os.environ.get("APP_NAME", "App")
     os.makedirs(out_dir, exist_ok=True)
     report = {}
-    for platform, (video_name, store, raw_size) in PLATFORMS.items():
+    for platform, (store, raw_size) in PLATFORMS.items():
         src = os.path.join(in_dir, platform)
         if not os.path.isdir(src):
             print(f"skip {platform}: no input")
             continue
         device_txt = os.path.join(src, "device.txt")
-        info = {"device": open(device_txt).read().strip() if os.path.exists(device_txt) else platform}
+        device = open(device_txt).read().strip() if os.path.exists(device_txt) else platform
+        info = {"device": device}
+        video_name = f"{app}_{device.split('|')[0].replace(' ', '')}.mp4"
         try:
             info["video"] = process_video(src, os.path.join(out_dir, "videos"), video_name)
-        except Exception as e:  # noqa: BLE001
+        except Exception as e:  # noqa: BLE001 - 單一平台失敗時仍處理截圖
             info["video_error"] = repr(e)
         shots = os.path.join(src, "shots")
-        if not os.path.isdir(shots) or not os.listdir(shots):
-            report[platform] = info
-            continue
-        raw_out = os.path.join(out_dir, "screenshots", f"{platform}_raw")
-        os.makedirs(raw_out, exist_ok=True)
-        for f in sorted(os.listdir(shots)):
-            shutil.copy(os.path.join(shots, f), raw_out)
-        if raw_size:
-            # App Store 6.9 吋規格：若裝置解析度不同，等比縮放後置中裁切成 1320x2868。
-            from PIL import Image
-            for f in os.listdir(raw_out):
-                p = os.path.join(raw_out, f)
-                im = Image.open(p).convert("RGB")
-                if im.size != raw_size:
-                    scale = max(raw_size[0] / im.width, raw_size[1] / im.height)
-                    im = im.resize((round(im.width * scale), round(im.height * scale)), Image.LANCZOS)
-                    left, top = (im.width - raw_size[0]) // 2, (im.height - raw_size[1]) // 2
-                    im = im.crop((left, top, left + raw_size[0], top + raw_size[1]))
-                im.save(p, optimize=True)
-        subprocess.check_call([sys.executable, os.path.join(HERE, "..", "store_shots.py"), shots,
-                               os.path.join(out_dir, "screenshots", store), store, font])
-        info["screenshots"] = sorted(os.listdir(shots))
+        if os.path.isdir(shots) and os.listdir(shots):
+            raw_out = os.path.join(out_dir, "screenshots", f"{platform}_raw")
+            os.makedirs(raw_out, exist_ok=True)
+            for f in sorted(os.listdir(shots)):
+                shutil.copy(os.path.join(shots, f), raw_out)
+                if raw_size:
+                    fit_exact(os.path.join(raw_out, f), raw_size)
+            subprocess.check_call([sys.executable, os.path.join(HERE, "store_shots.py"), shots,
+                                   os.path.join(out_dir, "screenshots", store), store, store_json, font])
+            info["screenshots"] = sorted(os.listdir(shots))
         report[platform] = info
     with open(os.path.join(out_dir, "report.json"), "w", encoding="utf-8") as fh:
         json.dump(report, fh, ensure_ascii=False, indent=2)
