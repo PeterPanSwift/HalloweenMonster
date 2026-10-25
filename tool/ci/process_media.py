@@ -20,8 +20,9 @@ PLATFORMS = {
     "ios": ("appstore", (1320, 2868)),  # App Store Connect 必填的 6.9 吋
     "android": ("googleplay", None),
 }
-# START 之前多留一點；END 之後 Android 會立刻顯示 integration_test 的「Test finished.」，所以往前收。
-LEAD_IN, TAIL = 0.4, -0.3
+# 錄影時間軸與時間戳有幾百毫秒的誤差。START 之前多留一點；END 之後操作腳本會在同一畫面停 3 秒，
+# 結尾只多留 0.2 秒，才不會剪進測試結束後的「Test finished.」畫面。
+LEAD_IN, TAIL = 0.4, 0.2
 VIDEO_HEIGHT = int(os.environ.get("VIDEO_HEIGHT", "1280"))
 VIDEO_CRF = os.environ.get("VIDEO_CRF", "26")
 

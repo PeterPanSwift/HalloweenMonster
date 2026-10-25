@@ -19,6 +19,9 @@ void main() {
       mark('START');
       await _video(tester);
       mark('END');
+      // END 之後在同一個畫面多停 3 秒：錄影時間軸有幾百毫秒的誤差，
+      // 沒有這段緩衝，裁剪時可能把測試結束後的「Test finished.」畫面剪進來。
+      await pause(tester, 3000);
     }
   }, timeout: const Timeout(Duration(minutes: 15)));
 }
