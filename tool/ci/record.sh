@@ -63,22 +63,22 @@ stop_device_log() {
 
 screenshot() {
   if [ "$PLATFORM" = ios ]; then
-    xcrun simctl io "$DEVICE" screenshot --type=png "$1"
+    xcrun simctl io "$DEVICE" screenshot --type=png "$1" < /dev/null
   else
-    adb -s "$DEVICE" exec-out screencap -p > "$1"
+    adb -s "$DEVICE" exec-out screencap -p > "$1" < /dev/null
   fi
 }
 
 # 錄影起點與 @@MARK 都是裝置時間（iOS 模擬器與主機共用時鐘），可直接相減。
 start_recording() {
   if [ "$PLATFORM" = ios ]; then
-    xcrun simctl io "$DEVICE" recordVideo --codec=h264 --force "$OUT/raw.mp4" > "$OUT/rec.log" 2>&1 &
+    xcrun simctl io "$DEVICE" recordVideo --codec=h264 --force "$OUT/raw.mp4" < /dev/null > "$OUT/rec.log" 2>&1 &
     for _ in $(seq 1 50); do grep -q "Recording started" "$OUT/rec.log" 2>/dev/null && break; sleep 0.1; done
     host_ms > "$OUT/rec_start_ms"
   else
     # 在裝置上先印出時間再 exec screenrecord，取得錄影起點的裝置時間。
     adb -s "$DEVICE" shell 'date +%s%N; exec screenrecord --bit-rate 16000000 --time-limit 180 /sdcard/demo.mp4' \
-      > "$OUT/rec.log" 2>&1 &
+      < /dev/null > "$OUT/rec.log" 2>&1 &
     for _ in $(seq 1 50); do [ -s "$OUT/rec.log" ] && break; sleep 0.1; done
     head -1 "$OUT/rec.log" | tr -d '\r' > "$OUT/rec_start_ms"
   fi
@@ -100,22 +100,18 @@ stop_recording() {
   fi
 }
 
-# 背景監聽裝置 log：記錄訊號、依 @@SHOT 截圖、依 @@READY 開始錄影。
+# 背景監聽裝置 log：記錄 log、依 @@SHOT 截圖。
+# 迴圈內的指令一律 < /dev/null，避免它們吃掉 log 管線裡的下一行。
 listen() {
-  local mode=$1 log=$2
+  local log=$1
   device_log | while IFS= read -r line; do
-    case "$line" in
-      *"@@"*|*"tests passed"*|*"tests failed"*|*"EXCEPTION"*) echo "$line" >> "$log" ;;
-    esac
+    echo "$line" >> "$log"
     case "$line" in
       *"@@SHOT "*)
         name=$(echo "${line##*@@SHOT }" | tr -cd 'A-Za-z0-9_')
         if [ ! -f "$OUT/shots/$name.png" ]; then
           screenshot "$OUT/shots/$name.png" && echo ">> captured $name"
         fi
-        ;;
-      *"@@READY"*)
-        if [ "$mode" = video ] && [ ! -f "$OUT/rec_start_ms" ]; then start_recording; fi
         ;;
     esac
   done
@@ -127,13 +123,16 @@ run_mode() {
   : > "$log"
   build_and_install "$mode"
   stop_app
-  listen "$mode" "$log" &
+  listen "$log" &
   local listener=$!
   sleep 3
+  # iOS 的 log stream 會延遲數秒，所以影片在啟動 App 前就開始錄，事後再依 @@MARK 裁剪。
+  if [ "$mode" = video ]; then start_recording; fi
   launch_app
   local deadline=$(( $(date +%s) + 300 ))
   until grep -q "$done_marker" "$log"; do
-    if grep -q "tests failed\|EXCEPTION CAUGHT" "$log" || [ "$(date +%s)" -gt "$deadline" ]; then
+    if { grep -q "tests failed\|EXCEPTION CAUGHT" "$log" && ! grep -q "$done_marker" "$log"; } \
+      || [ "$(date +%s)" -gt "$deadline" ]; then
       echo "::error::$mode run failed or timed out"
       cat "$log"
       stop_device_log; stop_app
@@ -141,11 +140,15 @@ run_mode() {
     fi
     sleep 1
   done
-  sleep 2
+  sleep 6
   stop_device_log
   wait "$listener" 2>/dev/null || true
   stop_app
-  cat "$log"
+  grep -E "@@|tests passed|tests failed" "$log" || true
+  if grep -q "EXCEPTION CAUGHT" "$log"; then
+    echo "::warning::$mode run logged an exception after finishing"
+    grep -A40 "EXCEPTION CAUGHT" "$log" | head -60
+  fi
 }
 
 echo "::group::Store screenshots"

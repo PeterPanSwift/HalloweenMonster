@@ -75,12 +75,16 @@ def main():
         if not os.path.isdir(src):
             print(f"skip {platform}: no input")
             continue
-        info = {"device": open(os.path.join(src, "device.txt")).read().strip()}
+        device_txt = os.path.join(src, "device.txt")
+        info = {"device": open(device_txt).read().strip() if os.path.exists(device_txt) else platform}
         try:
             info["video"] = process_video(src, os.path.join(out_dir, "videos"), video_name)
         except Exception as e:  # noqa: BLE001
             info["video_error"] = repr(e)
         shots = os.path.join(src, "shots")
+        if not os.path.isdir(shots) or not os.listdir(shots):
+            report[platform] = info
+            continue
         raw_out = os.path.join(out_dir, "screenshots", f"{platform}_raw")
         os.makedirs(raw_out, exist_ok=True)
         for f in sorted(os.listdir(shots)):

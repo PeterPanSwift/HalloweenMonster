@@ -85,10 +85,11 @@ Future<void> video(WidgetTester tester) async {
   mark('END');
 }
 
+// iOS 的 log stream 可能延遲數秒才送到 CI，所以每個畫面停久一點。
 Future<void> shot(WidgetTester tester, String name) async {
   await wait(tester, 1500);
   debugPrint('@@SHOT $name');
-  await wait(tester, 3500);
+  await wait(tester, 9000);
 }
 
 Future<void> shots(WidgetTester tester) async {

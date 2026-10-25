@@ -47,9 +47,10 @@ jobs:
         run: tool/ci/ios_boot.sh
 
       - name: Record
-        run: |
-          tool/ci/record.sh ios "$SIM_ID" out/ios
-          cp device.txt out/ios/
+        run: tool/ci/record.sh ios "$SIM_ID" out/ios
+
+      - if: always()
+        run: mkdir -p out/ios && cp device.txt out/ios/ || true
 
       - uses: actions/upload-artifact@v4
         if: always()
@@ -90,9 +91,10 @@ jobs:
         run: tool/ci/android_boot.sh
 
       - name: Record
-        run: |
-          tool/ci/record.sh android emulator-5554 out/android
-          cp device.txt out/android/
+        run: tool/ci/record.sh android emulator-5554 out/android
+
+      - if: always()
+        run: mkdir -p out/android && cp device.txt out/android/ || true
 
       - uses: actions/upload-artifact@v4
         if: always()
