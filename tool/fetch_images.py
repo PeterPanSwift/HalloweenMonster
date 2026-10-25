@@ -19,16 +19,16 @@ from PIL import Image, ImageDraw, ImageFont
 
 API = "https://commons.wikimedia.org/w/api.php"
 UA = "HalloweenMonsterApp/1.0 (https://github.com/PeterPanSwift/HalloweenMonster)"
-PER_MONSTER = 4
+PER_MONSTER = 6
 
 MONSTERS = {
     "jack_o_lantern": ["jack-o'-lantern carved pumpkin", "Halloween pumpkin lantern night"],
-    "vampire": ["Varney the Vampire illustration", "vampire illustration 19th century"],
-    "werewolf": ["Cranach werewolf woodcut", "werewolf engraving"],
+    "vampire": ["Nosferatu 1922 Max Schreck", "Burne-Jones The Vampire 1897", "Varney the Vampire illustration"],
+    "werewolf": ["loup-garou illustration", "werewolf illustration 19th century", "Cranach werewolf woodcut"],
     "frankenstein": ["Frankenstein 1831 frontispiece", "Frankenstein Edison 1910 film"],
     "mummy": ["Egyptian mummy museum", "mummy British Museum"],
-    "witch": ["Goya Witches Flight", "witches sabbath painting"],
-    "ghost": ["ghost spirit photograph 19th century", "ghost illustration Victorian"],
+    "witch": ["Halloween postcard witch", "witch broomstick illustration", "Goya Witches Flight"],
+    "ghost": ["Halloween postcard ghost", "Pepper's ghost illustration", "ghost spectre engraving"],
     "skeleton": ["Posada Calavera Catrina", "skeleton dance danse macabre"],
     "headless_horseman": ["Quidor Headless Horseman Ichabod Crane", "Headless Horseman illustration"],
     "banshee": ["banshee illustration", "banshee Ireland legend"],
@@ -101,7 +101,10 @@ def main():
     out_dir = sys.argv[1] if len(sys.argv) > 1 else "candidates"
     os.makedirs(out_dir, exist_ok=True)
     report = {}
+    only = [m for m in os.environ.get("ONLY", "").split(",") if m]
     for mid, queries in MONSTERS.items():
+        if only and mid not in only:
+            continue
         print(f"== {mid}")
         seen, picks = set(), []
         for q in queries:

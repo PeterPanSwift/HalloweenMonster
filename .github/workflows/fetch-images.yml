@@ -20,6 +20,8 @@ jobs:
           python-version: '3.12'
       - run: pip install pillow
       - run: python3 tool/fetch_images.py candidates
+        env:
+          ONLY: vampire,werewolf,witch,ghost
       - name: Push candidates to the image-candidates branch
         run: |
           git config user.name "github-actions[bot]"
