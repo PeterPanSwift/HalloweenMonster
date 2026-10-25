@@ -1,0 +1,58 @@
+{
+  "ghost": [
+    {
+      "title": "File:Marley's Ghost-John Leech, 1843.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Marley%27s_Ghost-John_Leech,_1843.jpg",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/0/03/Marley%27s_Ghost-John_Leech%2C_1843.jpg/1280px-Marley%27s_Ghost-John_Leech%2C_1843.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "Public domain",
+      "license_url": "",
+      "artist": "John Leech",
+      "file": "candidates/ghost/0.jpg"
+    },
+    {
+      "title": "File:Marley's Ghost-John Leech 1843-detail.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Marley%27s_Ghost-John_Leech_1843-detail.jpg",
+      "thumb": "https://upload.wikimedia.org/wikipedia/commons/3/39/Marley%27s_Ghost-John_Leech_1843-detail.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "license": "Public domain",
+      "license_url": "",
+      "artist": "John Leech",
+      "file": "candidates/ghost/1.jpg"
+    },
+    {
+      "title": "File:Marley's Ghost-John Leech, 1843 (cropped 1).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Marley%27s_Ghost-John_Leech,_1843_(cropped_1).jpg",
+      "thumb": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Marley%27s_Ghost-John_Leech%2C_1843_%28cropped_1%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "license": "Public domain",
+      "license_url": "",
+      "artist": "John Leech",
+      "file": "candidates/ghost/2.jpg"
+    },
+    {
+      "title": "File:Marley's Ghost-John Leech, 1843 (DYK crop).jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Marley%27s_Ghost-John_Leech,_1843_(DYK_crop).jpg",
+      "thumb": "https://upload.wikimedia.org/wikipedia/commons/6/64/Marley%27s_Ghost-John_Leech%2C_1843_%28DYK_crop%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail_unscaled",
+      "license": "Public domain",
+      "license_url": "",
+      "artist": "John Leech",
+      "file": "candidates/ghost/3.jpg"
+    },
+    {
+      "title": "File:Marley's Ghost - A Christmas Carol (1843), opposite 25 - BL.jpg",
+      "page": "https://commons.wikimedia.org/wiki/File:Marley%27s_Ghost_-_A_Christmas_Carol_(1843),_opposite_25_-_BL.jpg",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/ff/Marley%27s_Ghost_-_A_Christmas_Carol_%281843%29%2C_opposite_25_-_BL.jpg/1280px-Marley%27s_Ghost_-_A_Christmas_Carol_%281843%29%2C_opposite_25_-_BL.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "Public domain",
+      "license_url": "",
+      "artist": "John Leech",
+      "file": "candidates/ghost/4.jpg"
+    },
+    {
+      "title": "File:Works of Charles Dickens Volume 18 - Marley's Ghost.png",
+      "page": "https://commons.wikimedia.org/wiki/File:Works_of_Charles_Dickens_Volume_18_-_Marley%27s_Ghost.png",
+      "thumb": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/34/Works_of_Charles_Dickens_Volume_18_-_Marley%27s_Ghost.png/1280px-Works_of_Charles_Dickens_Volume_18_-_Marley%27s_Ghost.png?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=thumbnail",
+      "license": "Public domain",
+      "license_url": "",
+      "artist": "J. Leech",
+      "file": "candidates/ghost/5.jpg"
+    }
+  ]
+}
